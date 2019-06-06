@@ -9,50 +9,66 @@ import (
 )
 
 type Log struct {
-	Time string `json:"time"`
-	Test string `json:"test"`
-	Output string `json:"output"`
+	Time   string
+	Test   string
+	Output string
 }
 
 type LogSlice struct {
-	Logs []Log `json:"logs"`
+	Logs []Log
 }
 
 type Case struct {
-	Name string `json:"name"`
-	Errors int `json:"errors"`
-	Time string `json:"time"`
+	Name   string
+	Errors int
+	Time   string
 }
 
 type Suite struct {
-	Name string `json:"name"`
-	Tests int `json:"tests"`
-	Cases []Case `json:"cases"`
+	Name  string
+	Tests int
+	Cases []Case
 }
 
 type SuiteSlice struct {
-	Suites []Suite `json:"suites"`
+	Suites []Suite
 }
 
 type Capture struct {
-	Expected string `json:"expected"`
-	Actual string `json:"actual"`
-	Time string `json:"time"`
+	Expected string
+	Actual   string
+	Time     string
 }
 
 type CaptureSlice struct {
-	Captures []Capture `json:"captures"`
+	Captures []Capture
 }
 
 type Test struct {
-	Name string `json:"name"`
-	Status string `json:"status"`
+	Name     string `json:"name"`
+	Status   string `json:"status"`
 	Expected string `json:"expected"`
-	Actual string `json:"actual"`
+	Actual   string `json:"actual"`
 }
 
 type TestSlice struct {
 	Tests []Test `json:"tests"`
+}
+
+func outputToStatus(output string) string {
+	if output == "fail" {
+		return output
+	} else {
+		return "OK"
+	}
+}
+
+func errorsToStatus(errors int) string {
+	if errors == 0 {
+		return "OK"
+	} else {
+		return "fail"
+	}
 }
 
 func main() {
@@ -71,59 +87,52 @@ func main() {
 		fmt.Println(err)
 	}
 
-
-
 	logs := LogSlice{}
 	err = json.Unmarshal(jsonLogs, &logs)
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(logs)
+	fmt.Printf("Logs: %v\n", logs)
 
 	suites := SuiteSlice{}
 	err = json.Unmarshal(jsonSuites, &suites)
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(suites)
+	fmt.Printf("Suites: %v\n", suites)
 
 	captures := CaptureSlice{}
 	err = json.Unmarshal(jsonCaptures, &captures)
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(captures)
+	fmt.Printf("Captures: %v\n\n", captures)
 
-	TestMap := make(map[int64] *Test)
+	TestMap := make(map[int64]*Test)
 
 	for _, log := range logs.Logs {
-		time, _ := strconv.ParseInt(log.Time, 10, 64)
-		status := "fail"
-		if log.Output != "fail" {
-			status = "OK"
+		time, err := strconv.ParseInt(log.Time, 10, 64)
+		if err != nil {
+			fmt.Println(err)
 		}
-		TestMap[time] = &Test{ Name:log.Test, Status: status  }
+		if test, exist := TestMap[time]; exist {
+			if test.Name != log.Test || test.Status != outputToStatus(log.Output) {
+				fmt.Println("Incorrect data...")
+			}
+		}
+		TestMap[time] = &Test{Name: log.Test, Status: outputToStatus(log.Output)}
 	}
-
-	fmt.Println(TestMap)
 
 	for _, suite := range suites.Suites {
 		for _, log := range suite.Cases {
 			timeT, _ := timeModule.Parse(timeModule.RFC850, log.Time)
 			time := timeT.Unix()
 			if test, exist := TestMap[time]; exist {
-				test.Name = log.Name
-				if log.Errors == 0 {
-					test.Status = "OK"
-				} else {
-					test.Status = "fail"
+				if test.Name != log.Name || test.Status != errorsToStatus(log.Errors) {
+					fmt.Println("Incorrect data...")
 				}
 			} else {
-				status := "fail"
-				if log.Errors == 0 {
-					status = "OK"
-				}
-				TestMap[time] = &Test{ Name: log.Name, Status: status }
+				TestMap[time] = &Test{Name: log.Name, Status: errorsToStatus(log.Errors)}
 			}
 		}
 	}
@@ -135,27 +144,22 @@ func main() {
 			test.Expected = capture.Expected
 			test.Actual = capture.Actual
 		} else {
-			TestMap[time] = &Test{ Expected: capture.Expected, Actual: capture.Actual }
+			TestMap[time] = &Test{Expected: capture.Expected, Actual: capture.Actual}
 		}
 	}
-
-
 
 	Tests := TestSlice{}
 
 	for _, value := range TestMap {
 		Tests.Tests = append(Tests.Tests, *value)
 	}
-
-	fmt.Println(Tests)
+	fmt.Printf("Tests structure: %v\n\n", Tests)
 
 	jsonTests, _ := json.Marshal(Tests)
-
-	fmt.Println(string(jsonTests))
+	fmt.Printf("JSON Data: %v\n", string(jsonTests))
 
 	err = ioutil.WriteFile("result.json", jsonTests, 0777)
 	if err != nil {
 		fmt.Println(err)
 	}
-
 }
