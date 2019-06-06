@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strconv"
+	timeModule "time"
 )
 
 type Log struct {
@@ -93,25 +94,57 @@ func main() {
 	}
 	fmt.Println(captures)
 
-	TestMap := make(map[uint64] Test)
+	TestMap := make(map[int64] *Test)
 
 	for _, log := range logs.Logs {
-		time, _ := strconv.ParseUint(log.Time, 10, 64)
+		time, _ := strconv.ParseInt(log.Time, 10, 64)
 		status := "fail"
 		if log.Output != "fail" {
 			status = "OK"
 		}
-		TestMap[time] = Test{ Name:log.Test, Status: status  }
+		TestMap[time] = &Test{ Name:log.Test, Status: status  }
 	}
 
 	fmt.Println(TestMap)
 
-/*	for _, suite := range suites.Suites*/
+	for _, suite := range suites.Suites {
+		for _, log := range suite.Cases {
+			timeT, _ := timeModule.Parse(timeModule.RFC850, log.Time)
+			time := timeT.Unix()
+			if test, exist := TestMap[time]; exist {
+				test.Name = log.Name
+				if log.Errors == 0 {
+					test.Status = "OK"
+				} else {
+					test.Status = "fail"
+				}
+			} else {
+				status := "fail"
+				if log.Errors == 0 {
+					status = "OK"
+				}
+				TestMap[time] = &Test{ Name: log.Name, Status: status }
+			}
+		}
+	}
+
+	for _, capture := range captures.Captures {
+		timeT, _ := timeModule.Parse(timeModule.RFC3339, capture.Time)
+		time := timeT.Unix()
+		if test, exist := TestMap[time]; exist {
+			test.Expected = capture.Expected
+			test.Actual = capture.Actual
+		} else {
+			TestMap[time] = &Test{ Expected: capture.Expected, Actual: capture.Actual }
+		}
+	}
+
+
 
 	Tests := TestSlice{}
 
 	for _, value := range TestMap {
-		Tests.Tests = append(Tests.Tests, value)
+		Tests.Tests = append(Tests.Tests, *value)
 	}
 
 	fmt.Println(Tests)
@@ -124,7 +157,5 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-
-
 
 }

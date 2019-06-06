@@ -1,0 +1,16 @@
+{
+  "tests": [
+    {
+      "name": "Test output A",
+      "status": "fail",
+      "expected": "A",
+      "actual": "B"
+    },
+    {
+      "name": "Test output B",
+      "status": "OK",
+      "expected": "B",
+      "actual": "B"
+    }
+  ]
+}
