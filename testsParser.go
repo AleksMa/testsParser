@@ -9,48 +9,40 @@ import (
 )
 
 type Log struct {
-	Time   string
-	Test   string
-	Output string
+	Time   string `json:"time"`
+	Test   string `json:"test"`
+	Output string `json:"output"`
 }
-
 type LogSlice struct {
-	Logs []Log
+	Logs []Log `json:"logs"`
 }
-
 type Case struct {
-	Name   string
-	Errors int
-	Time   string
+	Name   string `json:"name"`
+	Errors int    `json:"errors"`
+	Time   string `json:"time"`
 }
-
 type Suite struct {
-	Name  string
-	Tests int
-	Cases []Case
+	Name  string `json:"name"`
+	Tests int    `json:"tests"`
+	Cases []Case `json:"cases"`
 }
-
 type SuiteSlice struct {
-	Suites []Suite
+	Suites []Suite `json:"suites"`
 }
-
 type Capture struct {
-	Expected string
-	Actual   string
-	Time     string
+	Expected string `json:"expected"`
+	Actual   string `json:"actual"`
+	Time     string `json:"time"`
 }
-
 type CaptureSlice struct {
-	Captures []Capture
+	Captures []Capture `json:"captures"`
 }
-
 type Test struct {
 	Name     string `json:"name"`
 	Status   string `json:"status"`
 	Expected string `json:"expected"`
 	Actual   string `json:"actual"`
 }
-
 type TestSlice struct {
 	Tests []Test `json:"tests"`
 }
