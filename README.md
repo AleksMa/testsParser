@@ -2,7 +2,7 @@
 
 ## Использование
 Запуск осуществляется командой   
-```go run testsParser file1.json file2.json file3.json ```  
+```go run testsParser.go file1 file2 file3 ```  
 Данные из примеров:   
 ```go run testsParser.go Data/1.json Data/2.json Data/3.json```
 

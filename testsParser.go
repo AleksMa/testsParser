@@ -64,41 +64,64 @@ func errorsToStatus(errors int) string {
 	}
 }
 
-func ReadAndExecute(path string, dataSlice interface{}) error {
+func Read(path string) []byte {
 	jsonLogs, err := ioutil.ReadFile(path)
 	if err != nil {
-		return err
+		fmt.Println("ERROR: incorrect input file. ", err)
+		os.Exit(1)
 	}
-	err = json.Unmarshal(jsonLogs, dataSlice)
-	if err != nil {
-		return err
-	}
-	return nil
+	return jsonLogs
 }
 
-func getData(buffers []interface{}) {
-	var err error
+func DecodeJSON(source []byte, dest interface{}) {
+	//TODO: валидация
+	err := json.Unmarshal(source, dest)
+	if err != nil {
+		fmt.Println("ERROR: input JSON failed.", err)
+		os.Exit(1)
+	}
+}
+
+func GetData(buffers []interface{}) {
 	for i, buf := range buffers {
-		err = ReadAndExecute(os.Args[i+1], buf)
-		if err != nil {
-			fmt.Println("ERROR: incorrect input file. ", err)
-			return
-		}
+		jsonLogs := Read(os.Args[i+1])
+		DecodeJSON(jsonLogs, buf)
 		fmt.Printf("%T: %v\n", buf, buf)
+	}
+}
+
+func EncodeJSON(testSlice TestSlice) []byte {
+	jsonTests, err := json.Marshal(testSlice)
+	if err != nil {
+		fmt.Println("ERROR: output JSON failed.", err)
+		os.Exit(1)
+	}
+	fmt.Printf("JSON Data: %v\n", string(jsonTests))
+	return jsonTests
+}
+
+func Write(data []byte) {
+	path := "Data/result.json"
+	if len(os.Args) > 4 {
+		path = os.Args[4]
+	}
+
+	err := ioutil.WriteFile(path, data, 0777)
+	if err != nil {
+		fmt.Println("ERROR: output write failed.", err)
+		os.Exit(1)
 	}
 }
 
 func main() {
 	if len(os.Args) < 4 {
-		fmt.Println("Usage: \"go run testsParser file1.json file2.json file3.json [result.json]\"")
+		fmt.Println("Usage: \"go run testsParser file1 file2 file3 [result]\"")
 		return
 	}
 
-	var err error
-
 	logs, suites, captures := LogSlice{}, SuiteSlice{}, CaptureSlice{}
 	buffers := []interface{}{&logs, &suites, &captures}
-	getData(buffers)
+	GetData(buffers)
 
 	TestMap := make(map[int64]*Test)
 
@@ -140,18 +163,14 @@ func main() {
 		}
 	}
 
-	Tests := TestSlice{}
+	testSlice := TestSlice{}
 
 	for _, value := range TestMap {
-		Tests.Tests = append(Tests.Tests, *value)
+		testSlice.Tests = append(testSlice.Tests, *value)
 	}
-	fmt.Printf("Tests structure: %v\n\n", Tests)
+	fmt.Printf("Test structure: %v\n\n", testSlice)
 
-	jsonTests, _ := json.Marshal(Tests)
-	fmt.Printf("JSON Data: %v\n", string(jsonTests))
+	jsonTests := EncodeJSON(testSlice)
 
-	err = ioutil.WriteFile("Data/result.json", jsonTests, 0777)
-	if err != nil {
-		fmt.Println(err)
-	}
+	Write(jsonTests)
 }
