@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"strconv"
-	timeModule "time"
+	"time"
 )
 
 type Log struct {
@@ -64,43 +65,33 @@ func errorsToStatus(errors int) string {
 	}
 }
 
-func Read(path string) []byte {
+func Read(path string) ([]byte, error) {
 	jsonLogs, err := ioutil.ReadFile(path)
 	if err != nil {
-		fmt.Println("ERROR: incorrect input file. ", err)
-		os.Exit(1)
+		return nil, err
 	}
-	return jsonLogs
+	return jsonLogs, nil
 }
 
-func DecodeJSON(source []byte, dest interface{}) {
+func DecodeJSON(source []byte, dest interface{}) error {
 	//TODO: валидация
 	err := json.Unmarshal(source, dest)
 	if err != nil {
-		fmt.Println("ERROR: input JSON failed.", err)
-		os.Exit(1)
+		return err
 	}
+	return nil
 }
 
-func GetData(buffers []interface{}) {
-	for i, buf := range buffers {
-		jsonLogs := Read(os.Args[i+1])
-		DecodeJSON(jsonLogs, buf)
-		fmt.Printf("%T: %v\n", buf, buf)
-	}
-}
-
-func EncodeJSON(testSlice TestSlice) []byte {
+func EncodeJSON(testSlice TestSlice) ([]byte, error) {
 	jsonTests, err := json.Marshal(testSlice)
 	if err != nil {
-		fmt.Println("ERROR: output JSON failed.", err)
-		os.Exit(1)
+		return nil, err
 	}
 	fmt.Printf("JSON Data: %v\n", string(jsonTests))
-	return jsonTests
+	return jsonTests, nil
 }
 
-func Write(data []byte) {
+func Write(data []byte) error {
 	path := "Data/result.json"
 	if len(os.Args) > 4 {
 		path = os.Args[4]
@@ -108,8 +99,58 @@ func Write(data []byte) {
 
 	err := ioutil.WriteFile(path, data, 0777)
 	if err != nil {
-		fmt.Println("ERROR: output write failed.", err)
-		os.Exit(1)
+		return err
+	}
+	return nil
+}
+
+func logsAnalizator(logs LogSlice, TestMap map[int64]*Test) {
+	for _, tempLog := range logs.Logs {
+		unixTime, err := strconv.ParseInt(tempLog.Time, 10, 64)
+		if err != nil {
+			log.Fatal("ERROR: Log time parse failed. ", err)
+		}
+		if test, exist := TestMap[unixTime]; exist {
+			if test.Name != tempLog.Test || test.Status != outputToStatus(tempLog.Output) {
+				fmt.Println("WARNING: Two different logs with same time")
+			}
+		}
+		TestMap[unixTime] = &Test{Name: tempLog.Test, Status: outputToStatus(tempLog.Output)}
+	}
+}
+
+func suiteAnalizator(suites SuiteSlice, TestMap map[int64]*Test) {
+	for _, suite := range suites.Suites {
+		for _, tempLog := range suite.Cases {
+			tempTime, err := time.Parse(time.RFC850, tempLog.Time)
+			if err != nil {
+				log.Fatal("ERROR: Suite time parse failed. ", err)
+			}
+			unixTime := tempTime.Unix()
+			if test, exist := TestMap[unixTime]; exist {
+				if test.Name != tempLog.Name || test.Status != errorsToStatus(tempLog.Errors) {
+					fmt.Println("WARNING: Two different logs with same time")
+				}
+			}
+			TestMap[unixTime] = &Test{Name: tempLog.Name, Status: errorsToStatus(tempLog.Errors)}
+		}
+	}
+}
+
+func capturesAnalizator(captures CaptureSlice, TestMap map[int64]*Test) {
+	for _, capture := range captures.Captures {
+		tempTime, err := time.Parse(time.RFC3339, capture.Time)
+		if err != nil {
+			log.Fatal("ERROR: Capture time parse failed. ", err)
+		}
+		unixTime := tempTime.Unix()
+		if test, exist := TestMap[unixTime]; exist {
+			test.Expected = capture.Expected
+			test.Actual = capture.Actual
+		} else {
+			fmt.Println("WARNING: Test with no name and status")
+			TestMap[unixTime] = &Test{Expected: capture.Expected, Actual: capture.Actual}
+		}
 	}
 }
 
@@ -121,56 +162,38 @@ func main() {
 
 	logs, suites, captures := LogSlice{}, SuiteSlice{}, CaptureSlice{}
 	buffers := []interface{}{&logs, &suites, &captures}
-	GetData(buffers)
+
+	for i, buf := range buffers {
+		jsonLogs, err := Read(os.Args[i+1])
+		if err != nil {
+			log.Fatal("ERROR: input read failed. ", err)
+		}
+		err = DecodeJSON(jsonLogs, buf)
+		if err != nil {
+			log.Fatal("ERROR: input JSON failed. ", err)
+		}
+		fmt.Printf("%T: %v\n", buf, buf)
+	}
 
 	TestMap := make(map[int64]*Test)
 
-	for _, log := range logs.Logs {
-		time, err := strconv.ParseInt(log.Time, 10, 64)
-		if err != nil {
-			fmt.Println(err)
-		}
-		if test, exist := TestMap[time]; exist {
-			if test.Name != log.Test || test.Status != outputToStatus(log.Output) {
-				fmt.Println("Incorrect data...")
-			}
-		}
-		TestMap[time] = &Test{Name: log.Test, Status: outputToStatus(log.Output)}
-	}
-
-	for _, suite := range suites.Suites {
-		for _, log := range suite.Cases {
-			timeT, _ := timeModule.Parse(timeModule.RFC850, log.Time)
-			time := timeT.Unix()
-			if test, exist := TestMap[time]; exist {
-				if test.Name != log.Name || test.Status != errorsToStatus(log.Errors) {
-					fmt.Println("Incorrect data...")
-				}
-			} else {
-				TestMap[time] = &Test{Name: log.Name, Status: errorsToStatus(log.Errors)}
-			}
-		}
-	}
-
-	for _, capture := range captures.Captures {
-		timeT, _ := timeModule.Parse(timeModule.RFC3339, capture.Time)
-		time := timeT.Unix()
-		if test, exist := TestMap[time]; exist {
-			test.Expected = capture.Expected
-			test.Actual = capture.Actual
-		} else {
-			TestMap[time] = &Test{Expected: capture.Expected, Actual: capture.Actual}
-		}
-	}
+	logsAnalizator(logs, TestMap)
+	suiteAnalizator(suites, TestMap)
+	capturesAnalizator(captures, TestMap)
 
 	testSlice := TestSlice{}
-
 	for _, value := range TestMap {
 		testSlice.Tests = append(testSlice.Tests, *value)
 	}
 	fmt.Printf("Test structure: %v\n\n", testSlice)
 
-	jsonTests := EncodeJSON(testSlice)
+	jsonTests, err := EncodeJSON(testSlice)
+	if err != nil {
+		log.Fatal("ERROR: output JSON failed.", err)
+	}
 
-	Write(jsonTests)
+	err = Write(jsonTests)
+	if err != nil {
+		log.Fatal("ERROR: output write failed.", err)
+	}
 }

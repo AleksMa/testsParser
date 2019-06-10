@@ -2,9 +2,9 @@
 
 ## Использование
 Запуск осуществляется командой   
-```go run testsParser.go file1 file2 file3 ```  
+```go run testsParser.go file1 file2 file3 [result]```  
 Данные из примеров:   
-```go run testsParser.go Data/1.json Data/2.json Data/3.json```
+```go run testsParser.go Data/1.json Data/2.json Data/3.json Data/result.json```  
 
 Результирующие данные представлены в виде массива объектов, содержащих следующие свойства:
 * **"name"**     - название теста;
