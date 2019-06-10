@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strconv"
 	timeModule "time"
 )
@@ -63,42 +64,41 @@ func errorsToStatus(errors int) string {
 	}
 }
 
+func ReadAndExecute(path string, dataSlice interface{}) error {
+	jsonLogs, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(jsonLogs, dataSlice)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func getData(buffers []interface{}) {
+	var err error
+	for i, buf := range buffers {
+		err = ReadAndExecute(os.Args[i+1], buf)
+		if err != nil {
+			fmt.Println("ERROR: incorrect input file. ", err)
+			return
+		}
+		fmt.Printf("%T: %v\n", buf, buf)
+	}
+}
+
 func main() {
-	jsonLogs, err := ioutil.ReadFile("1.json")
-	if err != nil {
-		fmt.Println(err)
+	if len(os.Args) < 4 {
+		fmt.Println("Usage: \"go run testsParser file1.json file2.json file3.json [result.json]\"")
+		return
 	}
 
-	jsonSuites, err := ioutil.ReadFile("2.json")
-	if err != nil {
-		fmt.Println(err)
-	}
+	var err error
 
-	jsonCaptures, err := ioutil.ReadFile("3.json")
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	logs := LogSlice{}
-	err = json.Unmarshal(jsonLogs, &logs)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Printf("Logs: %v\n", logs)
-
-	suites := SuiteSlice{}
-	err = json.Unmarshal(jsonSuites, &suites)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Printf("Suites: %v\n", suites)
-
-	captures := CaptureSlice{}
-	err = json.Unmarshal(jsonCaptures, &captures)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Printf("Captures: %v\n\n", captures)
+	logs, suites, captures := LogSlice{}, SuiteSlice{}, CaptureSlice{}
+	buffers := []interface{}{&logs, &suites, &captures}
+	getData(buffers)
 
 	TestMap := make(map[int64]*Test)
 
@@ -150,7 +150,7 @@ func main() {
 	jsonTests, _ := json.Marshal(Tests)
 	fmt.Printf("JSON Data: %v\n", string(jsonTests))
 
-	err = ioutil.WriteFile("result.json", jsonTests, 0777)
+	err = ioutil.WriteFile("Data/result.json", jsonTests, 0777)
 	if err != nil {
 		fmt.Println(err)
 	}

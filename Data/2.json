@@ -2,7 +2,7 @@
   "suites": [
     {
       "name": "suite1",
-      "tests": 1,
+      "tests": 2,
       "cases": [
         {
           "name": "Test output B",
