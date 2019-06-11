@@ -1,0 +1,9 @@
+{
+  "logs": [
+    {
+      "notTimeButWrongProperty": 1337,
+      "test": "Test output A",
+      "output": "fail"
+    }
+  ]
+}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/xeipuuv/gojsonschema"
 	"io/ioutil"
@@ -67,7 +68,7 @@ func errorsToStatus(errors int) string {
 }
 
 func Validation(path string, schemaPath string) error {
-	schemaLoader := gojsonschema.NewReferenceLoader("file://Schemas/" + schemaPath)
+	schemaLoader := gojsonschema.NewReferenceLoader("file://" + schemaPath)
 	documentLoader := gojsonschema.NewReferenceLoader("file://" + path)
 
 	result, err := gojsonschema.Validate(schemaLoader, documentLoader)
@@ -82,7 +83,7 @@ func Validation(path string, schemaPath string) error {
 		for _, desc := range result.Errors() {
 			fmt.Printf("- %s\n", desc)
 		}
-		return err
+		return errors.New(" not valid document.")
 	}
 }
 
@@ -124,7 +125,7 @@ func Write(data []byte) error {
 	return nil
 }
 
-func logsAnalizator(logs LogSlice, TestMap map[int64]*Test) {
+func LogsAnalizator(logs LogSlice, TestMap map[int64]*Test) {
 	for _, tempLog := range logs.Logs {
 		unixTime, err := strconv.ParseInt(tempLog.Time, 10, 64)
 		if err != nil {
@@ -139,7 +140,7 @@ func logsAnalizator(logs LogSlice, TestMap map[int64]*Test) {
 	}
 }
 
-func suiteAnalizator(suites SuiteSlice, TestMap map[int64]*Test) {
+func SuiteAnalizator(suites SuiteSlice, TestMap map[int64]*Test) {
 	for _, suite := range suites.Suites {
 		for _, tempLog := range suite.Cases {
 			tempTime, err := time.Parse(time.RFC850, tempLog.Time)
@@ -157,7 +158,7 @@ func suiteAnalizator(suites SuiteSlice, TestMap map[int64]*Test) {
 	}
 }
 
-func capturesAnalizator(captures CaptureSlice, TestMap map[int64]*Test) {
+func CapturesAnalizator(captures CaptureSlice, TestMap map[int64]*Test) {
 	for _, capture := range captures.Captures {
 		tempTime, err := time.Parse(time.RFC3339, capture.Time)
 		if err != nil {
@@ -183,7 +184,7 @@ func main() {
 	logs, suites, captures := LogSlice{}, SuiteSlice{}, CaptureSlice{}
 	buffers := []interface{}{&logs, &suites, &captures}
 
-	schemas := []string{"logsSchema.json", "suitesSchema.json", "capturesSchema.json"}
+	schemas := []string{"Schemas/logsSchema.json", "Schemas/suitesSchema.json", "Schemas/capturesSchema.json"}
 
 	for i, buf := range buffers {
 		err := Validation(os.Args[i+1], schemas[i])
@@ -203,9 +204,9 @@ func main() {
 
 	TestMap := make(map[int64]*Test)
 
-	logsAnalizator(logs, TestMap)
-	suiteAnalizator(suites, TestMap)
-	capturesAnalizator(captures, TestMap)
+	LogsAnalizator(logs, TestMap)
+	SuiteAnalizator(suites, TestMap)
+	CapturesAnalizator(captures, TestMap)
 
 	testSlice := TestSlice{}
 	for _, value := range TestMap {
