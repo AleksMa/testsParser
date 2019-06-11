@@ -2,7 +2,7 @@
 
 ## Использование
 Запуск осуществляется командой   
-```go run parser.go file1 file2 file3 [result]```    
+```go run parser.go file1 file2 file3 [fileResult]```    
   
 Данные из примеров:   
 ```go run parser.go Data/1.json Data/2.json Data/3.json Data/result.json```  
@@ -20,5 +20,6 @@
 Происходит запуск скрипта с данными из Data/ и сравнение с правильным результатом.
 
 ## Валидация
-Входные данные валидируются по JSON Schema, используется пакет ***gojsonschema***.
-Его можно установить командой ```go get github.com/xeipuuv/gojsonschema```
+Входные данные валидируются по JSON Schema, используется пакет ***gojsonschema***.  
+Его можно установить командой ```go get github.com/xeipuuv/gojsonschema```  
+Пакет чувствителен к языку. Пожалуйста, не размещайте входные данные в директориях с названиями не на английском языке.

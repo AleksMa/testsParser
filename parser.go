@@ -67,9 +67,8 @@ func errorsToStatus(errors int) string {
 }
 
 func Validation(path string, schemaPath string) error {
-	dir, _ := os.Getwd()
-	schemaLoader := gojsonschema.NewReferenceLoader("file://" + dir + "/Schemas/" + schemaPath)
-	documentLoader := gojsonschema.NewReferenceLoader("file://" + dir + "/" + path)
+	schemaLoader := gojsonschema.NewReferenceLoader("file://Schemas/" + schemaPath)
+	documentLoader := gojsonschema.NewReferenceLoader("file://" + path)
 
 	result, err := gojsonschema.Validate(schemaLoader, documentLoader)
 	if err != nil {
@@ -177,7 +176,7 @@ func capturesAnalizator(captures CaptureSlice, TestMap map[int64]*Test) {
 
 func main() {
 	if len(os.Args) < 4 {
-		fmt.Println("Usage: \"go run parser.go file1 file2 file3 [result]\"")
+		fmt.Println("Usage: \"go run parser.go file1 file2 file3 [fileResult]\"")
 		return
 	}
 
