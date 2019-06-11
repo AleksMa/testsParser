@@ -17,8 +17,10 @@
           "time": {
             "type": "string"
           }
-        }
+        },
+        "required": ["expected", "actual", "time"]
       }
     }
-  }
+  },
+  "required": ["captures"]
 }

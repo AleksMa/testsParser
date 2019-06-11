@@ -17,7 +17,8 @@
           "output": {
             "type": "string"
           }
-        }
+        },
+        "required": ["time"]
       }
     }
   }
