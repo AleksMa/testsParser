@@ -1,11 +1,23 @@
 # Анализ данных из JSON-файлов  
 
-## Использование
+## Установка и запуск
+
+В терминале:  
+* ```git clone https://github.com/AleksMa/testsParser.git```  
+* ```cd testsParser```   
+Далее либо
+* ```export GO111MODULE=on```
+* ```go build```    
+либо
+* ```go get github.com/xeipuuv/gojsonschema```    
+---
 Запуск осуществляется командой   
 ```go run parser.go file1 file2 file3 [fileResult]```    
   
 Данные из примеров:   
 ```go run parser.go Data/1.json Data/2.json Data/3.json Data/result.json```  
+
+
 
 
 ---  
