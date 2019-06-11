@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/xeipuuv/gojsonschema"
 	"io/ioutil"
 	"log"
 	"os"
@@ -65,6 +66,27 @@ func errorsToStatus(errors int) string {
 	}
 }
 
+func Validation(path string, schemaPath string) error {
+	dir, _ := os.Getwd()
+	schemaLoader := gojsonschema.NewReferenceLoader("file://" + dir + "/Schemas/" + schemaPath)
+	documentLoader := gojsonschema.NewReferenceLoader("file://" + dir + "/" + path)
+
+	result, err := gojsonschema.Validate(schemaLoader, documentLoader)
+	if err != nil {
+		return err
+	}
+
+	if result.Valid() {
+		return nil
+	} else {
+		fmt.Printf("The document is not valid. see errors :\n")
+		for _, desc := range result.Errors() {
+			fmt.Printf("- %s\n", desc)
+		}
+		return err
+	}
+}
+
 func Read(path string) ([]byte, error) {
 	jsonLogs, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -74,7 +96,6 @@ func Read(path string) ([]byte, error) {
 }
 
 func DecodeJSON(source []byte, dest interface{}) error {
-	//TODO: валидация
 	err := json.Unmarshal(source, dest)
 	if err != nil {
 		return err
@@ -163,7 +184,13 @@ func main() {
 	logs, suites, captures := LogSlice{}, SuiteSlice{}, CaptureSlice{}
 	buffers := []interface{}{&logs, &suites, &captures}
 
+	schemas := []string{"logsSchema.json", "suitesSchema.json", "capturesSchema.json"}
+
 	for i, buf := range buffers {
+		err := Validation(os.Args[i+1], schemas[i])
+		if err != nil {
+			log.Fatal("ERROR: json validation failed. ", err)
+		}
 		jsonLogs, err := Read(os.Args[i+1])
 		if err != nil {
 			log.Fatal("ERROR: input read failed. ", err)
