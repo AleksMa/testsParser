@@ -5,9 +5,11 @@
 В терминале:  
 * ```git clone https://github.com/AleksMa/testsParser.git```  
 * ```cd testsParser```   
+  
 Далее либо
 * ```export GO111MODULE=on```
-* ```go build```    
+* ```go build```   
+     
 либо
 * ```go get github.com/xeipuuv/gojsonschema```    
 ---
@@ -33,5 +35,4 @@
 
 ## Валидация
 Входные данные валидируются по JSON Schema, используется пакет ***gojsonschema***.  
-Его можно установить командой ```go get github.com/xeipuuv/gojsonschema```  
 Пакет чувствителен к языку. Пожалуйста, не размещайте входные данные в директориях с названиями не на английском языке.
