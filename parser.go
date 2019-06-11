@@ -156,7 +156,7 @@ func capturesAnalizator(captures CaptureSlice, TestMap map[int64]*Test) {
 
 func main() {
 	if len(os.Args) < 4 {
-		fmt.Println("Usage: \"go run testsParser file1 file2 file3 [result]\"")
+		fmt.Println("Usage: \"go run parser.go file1 file2 file3 [result]\"")
 		return
 	}
 
